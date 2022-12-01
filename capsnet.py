@@ -148,7 +148,6 @@ class CapsNet(nn.Module):
         batch_size = x.size(0)
 
         v_c = torch.sqrt((x ** 2).sum(dim=2, keepdim=True))
-        print(v_c.shape)
         left = f.relu(0.9 - v_c).view(batch_size, -1)
         right = f.relu(-(-v_c) - 0.1).view(batch_size, -1)
 
