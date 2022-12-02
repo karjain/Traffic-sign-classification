@@ -7,6 +7,7 @@ from torch.autograd import Variable
 from capsnet import CapsNet
 from data_loader import Dataset
 from tqdm import tqdm
+from utils import SaveBestModel
 
 
 torch.cuda.empty_cache()
@@ -102,8 +103,7 @@ def test(capsnet, test_loader, epoch):
                        np.argmax(target.data.cpu().numpy(), 1))
 
     tqdm.write(
-        "Epoch: [{}/{}], test accuracy: {:.6f}, loss: {:.6f}".format(epoch, N_EPOCHS, correct/len(test_loader.dataset),
-                                                                     test_loss / len(test_loader)))
+        "Epoch: [{}/{}], test accuracy: {:.6f}, loss: {:.6f}".format( correct/len(test_loader.dataset),test_loss / len(test_loader)))
 
 
 if __name__ == '__main__':
@@ -119,10 +119,11 @@ if __name__ == '__main__':
     capsule_net = capsule_net.module
 
     optimizer = torch.optim.Adam(capsule_net.parameters(), lr=LEARNING_RATE)
+    save_best_model = SaveBestModel()
 
     for e in range(1, N_EPOCHS + 1):
         train(capsule_net, optimizer, mnist.train_loader, e)
-        test(capsule_net, mnist.test_loader, e)
+    test(capsule_net, mnist.test_loader, 1)
 
 
 # batch = next(iter(mnist.test_loader))

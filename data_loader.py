@@ -1,3 +1,20 @@
+"""
+        ── Parent
+        │
+        ├── Code
+        │   ├── data_loader.py
+        │   ├── capsnet.py
+        │   └── test_capsnet.py
+        │   ├── lime.py
+        │   └── test_capsnet.py
+        |── Data
+        │   ├── Train.csv
+        │   ├── Test.csv
+        │   └── Train (img1,img2 ....)
+        |   └── Test(img1,img2 ....)
+        └── README.md
+"""
+
 import torch
 from torchvision import transforms
 from torch.utils.data import DataLoader, Dataset
@@ -32,15 +49,21 @@ class GTSRB(Dataset):
 class Dataset:
     def __init__(self, _batch_size, download=False):
         super(Dataset, self).__init__()
+
+
         code_dir = os.getcwd()
-        img_dir = os.path.join(os.path.split(code_dir)[0], 'Data')
+        os.chdir("..")  # Change to the parent directory
+        os.chdir("..")  # Change to the parent directory
+        DATA_DIR = os.getcwd() + os.path.sep + 'Data' + os.path.sep
+        os.chdir(code_dir)
+
         if download:
-            Dataset.download_data(img_dir)
-        train_file = os.path.join(img_dir, "Train.csv")
-        test_file = os.path.join(img_dir, "Test.csv")
+            Dataset.download_data(DATA_DIR)
+        train_file = os.path.join(DATA_DIR, "Train.csv")
+        test_file = os.path.join(DATA_DIR, "Test.csv")
         self.batch_size = _batch_size
         self.train_data = GTSRB(
-            img_dir=img_dir,
+            img_dir=DATA_DIR,
             annotations_file=train_file,
             transform=transforms.Compose([
                 transforms.Resize((28, 28)),
@@ -49,7 +72,7 @@ class Dataset:
             ])
         )
         self.test_data = GTSRB(
-            img_dir=img_dir,
+            img_dir=DATA_DIR,
             annotations_file=test_file,
             transform=transforms.Compose([
                 transforms.Resize((28, 28)),
