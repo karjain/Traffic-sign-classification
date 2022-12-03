@@ -7,6 +7,7 @@ from torch.autograd import Variable
 from capsnet import CapsNet
 from data_loader import Dataset
 from tqdm import tqdm
+import os
 from utils import SaveBestModel
 
 
@@ -18,6 +19,7 @@ N_EPOCHS = 2
 LEARNING_RATE = 1e-4
 MOMENTUM = 0.9
 NUM_CLASSES = 43
+TRAIN_MODEL = False
 '''
 Config class to determine the parameters for capsule net
 '''
@@ -50,11 +52,11 @@ class Config:
         self.num_classes = NUM_CLASSES
 
 
-def train(model, optim, train_loader, epoch):
-    capsnet = model
-    capsnet.train()
+def train(train_loader, epoch):
+    capsule_net.train()
     n_batch = len(list(enumerate(train_loader)))
     total_loss = 0
+    output_log = dict()
     for batch_id, (data, target) in enumerate(tqdm(train_loader)):
 
         target = torch.sparse.torch.eye(NUM_CLASSES).index_select(dim=0, index=target)
@@ -63,11 +65,17 @@ def train(model, optim, train_loader, epoch):
         if USE_CUDA:
             data, target = data.cuda(), target.cuda()
 
-        optim.zero_grad()
-        output, reconstructions, masked = capsnet(data)
-        loss = capsnet.loss(data, output, target, reconstructions)
+        optimizer.zero_grad()
+        output, reconstructions, masked = capsule_net(data)
+        # # for debugging
+        # output_log[batch_id] = (output, capsule_net, data)
+        # [sum([torch.isnan(x).sum().item() for x in capsnet.state_dict().values() if torch.isnan(x).sum() > 0]) for
+        #  _, capsnet, _ in output_log.values()]
+        loss = capsule_net.loss(data, output, target, reconstructions)
         loss.backward()
-        optim.step()
+        torch.nn.utils.clip_grad_norm_(capsule_net.parameters(), max_norm=1)
+
+        optimizer.step()
         correct = sum(np.argmax(masked.data.cpu().numpy(), 1) == np.argmax(target.data.cpu().numpy(), 1))
         train_loss = loss.item()
         total_loss += train_loss
@@ -83,7 +91,7 @@ def train(model, optim, train_loader, epoch):
     tqdm.write('Epoch: [{}/{}], train loss: {:.6f}'.format(epoch, N_EPOCHS, total_loss / len(train_loader.dataset)))
 
 
-def test(capsnet, test_loader, epoch):
+def test(test_loader, epoch):
     capsule_net.eval()
     test_loss = 0
     correct = 0
@@ -95,15 +103,17 @@ def test(capsnet, test_loader, epoch):
         if USE_CUDA:
             data, target = data.cuda(), target.cuda()
 
-        output, reconstructions, masked = capsnet(data)
-        loss = capsnet.loss(data, output, target, reconstructions)
+        output, reconstructions, masked = capsule_net(data)
+        loss = capsule_net.loss(data, output, target, reconstructions)
 
         test_loss += loss.item()
         correct += sum(np.argmax(masked.data.cpu().numpy(), 1) ==
                        np.argmax(target.data.cpu().numpy(), 1))
 
     tqdm.write(
-        "Epoch: [{}/{}], test accuracy: {:.6f}, loss: {:.6f}".format( correct/len(test_loader.dataset),test_loss / len(test_loader)))
+        "Epoch: [{}], test accuracy: {:.6f}, loss: {:.6f}".format(epoch, N_EPOCHS, correct/len(test_loader.dataset),
+                                                                     test_loss / len(test_loader)))
+    return test_loss / len(test_loader)
 
 
 if __name__ == '__main__':
@@ -118,13 +128,17 @@ if __name__ == '__main__':
         capsule_net = capsule_net.cuda()
     capsule_net = capsule_net.module
 
-    optimizer = torch.optim.Adam(capsule_net.parameters(), lr=LEARNING_RATE)
-    save_best_model = SaveBestModel()
+    optimizer = torch.optim.RMSprop(capsule_net.parameters(), lr=LEARNING_RATE)
 
-    for e in range(1, N_EPOCHS + 1):
-        train(capsule_net, optimizer, mnist.train_loader, e)
-    test(capsule_net, mnist.test_loader, 1)
-
+    if TRAIN_MODEL:
+        save_best_model = SaveBestModel()
+        for e in range(1, N_EPOCHS + 1):
+            train(mnist.train_loader, e)
+            val_loss = test(mnist.test_loader, e)
+            save_best_model(val_loss, e, capsule_net, optimizer)
+    else:
+        capsule_net.load_state_dict(torch.load(os.path.join(mnist.img_dir, 'capsnet-model.pt')))
+        test_acc = test(mnist.test_loader, 1)
 
 # batch = next(iter(mnist.test_loader))
 # images, _ = batch

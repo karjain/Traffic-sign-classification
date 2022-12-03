@@ -49,35 +49,29 @@ class GTSRB(Dataset):
 class Dataset:
     def __init__(self, _batch_size, download=False):
         super(Dataset, self).__init__()
-
-
         code_dir = os.getcwd()
-        os.chdir("..")  # Change to the parent directory
-        os.chdir("..")  # Change to the parent directory
-        DATA_DIR = os.getcwd() + os.path.sep + 'Data' + os.path.sep
-        os.chdir(code_dir)
-
+        self.img_dir = os.path.join(os.path.split(code_dir)[0], 'Data')
         if download:
-            Dataset.download_data(DATA_DIR)
-        train_file = os.path.join(DATA_DIR, "Train.csv")
-        test_file = os.path.join(DATA_DIR, "Test.csv")
+            self.download_data()
+        train_file = os.path.join(self.img_dir, "Train.csv")
+        test_file = os.path.join(self.img_dir, "Test.csv")
         self.batch_size = _batch_size
         self.train_data = GTSRB(
-            img_dir=DATA_DIR,
+            img_dir=self.img_dir,
             annotations_file=train_file,
             transform=transforms.Compose([
                 transforms.Resize((28, 28)),
                 transforms.ConvertImageDtype(torch.float32),
-                transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+                # transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
             ])
         )
         self.test_data = GTSRB(
-            img_dir=DATA_DIR,
+            img_dir=self.img_dir,
             annotations_file=test_file,
             transform=transforms.Compose([
                 transforms.Resize((28, 28)),
                 transforms.ConvertImageDtype(torch.float32),
-                transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+                # transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
             ])
         )
         self.train_loader = torch.utils.data.DataLoader(
@@ -86,22 +80,21 @@ class Dataset:
         self.test_loader = torch.utils.data.DataLoader(
             self.test_data, batch_size=self.batch_size, shuffle=False)
 
-    @staticmethod
-    def download_data(data_dir):
-        if not os.path.exists(data_dir):
-            os.mkdir(data_dir)
+    def download_data(self):
+        if not os.path.exists(self.img_dir):
+            os.mkdir(self.img_dir)
         else:
-            for root, dirs, files in os.walk(data_dir):
+            for root, dirs, files in os.walk(self.img_dir):
                 for f in files:
                     os.unlink(os.path.join(root, f))
                 for d in dirs:
                     shutil.rmtree(os.path.join(root, d))
-        os.chdir(data_dir)
+        os.chdir(self.img_dir)
         api = KaggleApi()
         api.authenticate()
         api.dataset_download_files(
             'meowmeowmeowmeowmeow/gtsrb-german-traffic-sign',
-            path=data_dir)
+            path=self.img_dir)
         return_code = os.system("unzip gtsrb-german-traffic-sign.zip")
         if return_code != 0:
             print("Could not unzip file")
