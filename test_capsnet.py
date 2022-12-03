@@ -14,8 +14,8 @@ from utils import SaveBestModel
 torch.cuda.empty_cache()
 
 USE_CUDA = True if torch.cuda.is_available() else False
-BATCH_SIZE = 16
-N_EPOCHS = 2
+BATCH_SIZE = 32
+N_EPOCHS = 3
 LEARNING_RATE = 1e-4
 MOMENTUM = 0.9
 NUM_CLASSES = 43
@@ -56,7 +56,7 @@ def train(train_loader, epoch):
     capsule_net.train()
     n_batch = len(list(enumerate(train_loader)))
     total_loss = 0
-    output_log = dict()
+    # output_log = dict()
     for batch_id, (data, target) in enumerate(tqdm(train_loader)):
 
         target = torch.sparse.torch.eye(NUM_CLASSES).index_select(dim=0, index=target)
@@ -111,8 +111,8 @@ def test(test_loader, epoch):
                        np.argmax(target.data.cpu().numpy(), 1))
 
     tqdm.write(
-        "Epoch: [{}], test accuracy: {:.6f}, loss: {:.6f}".format(epoch, N_EPOCHS, correct/len(test_loader.dataset),
-                                                                     test_loss / len(test_loader)))
+        "Epoch: [{}], test accuracy: {:.6f}, loss: {:.6f}".format(epoch, correct/len(test_loader.dataset),
+                                                                  test_loss / len(test_loader)))
     return test_loss / len(test_loader)
 
 
@@ -128,7 +128,7 @@ if __name__ == '__main__':
         capsule_net = capsule_net.cuda()
     capsule_net = capsule_net.module
 
-    optimizer = torch.optim.RMSprop(capsule_net.parameters(), lr=LEARNING_RATE)
+    optimizer = torch.optim.RMSprop(capsule_net.parameters(), lr=LEARNING_RATE, momentum=MOMENTUM)
 
     if TRAIN_MODEL:
         save_best_model = SaveBestModel()
