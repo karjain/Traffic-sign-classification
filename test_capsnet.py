@@ -12,14 +12,15 @@ from utils import SaveBestModel
 
 
 torch.cuda.empty_cache()
+torch.autograd.set_detect_anomaly(True)
 
 USE_CUDA = True if torch.cuda.is_available() else False
-BATCH_SIZE = 32
-N_EPOCHS = 3
-LEARNING_RATE = 1e-4
+BATCH_SIZE = 64
+N_EPOCHS = 10
+LEARNING_RATE = 1e-3
 MOMENTUM = 0.9
 NUM_CLASSES = 43
-TRAIN_MODEL = False
+TRAIN_MODEL = True
 '''
 Config class to determine the parameters for capsule net
 '''
@@ -56,7 +57,6 @@ def train(train_loader, epoch):
     capsule_net.train()
     n_batch = len(list(enumerate(train_loader)))
     total_loss = 0
-    # output_log = dict()
     for batch_id, (data, target) in enumerate(tqdm(train_loader)):
 
         target = torch.sparse.torch.eye(NUM_CLASSES).index_select(dim=0, index=target)
@@ -67,14 +67,9 @@ def train(train_loader, epoch):
 
         optimizer.zero_grad()
         output, reconstructions, masked = capsule_net(data)
-        # # for debugging
-        # output_log[batch_id] = (output, capsule_net, data)
-        # [sum([torch.isnan(x).sum().item() for x in capsnet.state_dict().values() if torch.isnan(x).sum() > 0]) for
-        #  _, capsnet, _ in output_log.values()]
         loss = capsule_net.loss(data, output, target, reconstructions)
         loss.backward()
-        torch.nn.utils.clip_grad_norm_(capsule_net.parameters(), max_norm=1)
-
+        # torch.nn.utils.clip_grad_norm_(capsule_net.parameters(), max_norm=1)
         optimizer.step()
         correct = sum(np.argmax(masked.data.cpu().numpy(), 1) == np.argmax(target.data.cpu().numpy(), 1))
         train_loss = loss.item()
@@ -128,7 +123,8 @@ if __name__ == '__main__':
         capsule_net = capsule_net.cuda()
     capsule_net = capsule_net.module
 
-    optimizer = torch.optim.RMSprop(capsule_net.parameters(), lr=LEARNING_RATE, momentum=MOMENTUM)
+    # optimizer = torch.optim.RMSprop(capsule_net.parameters(), lr=LEARNING_RATE, momentum=MOMENTUM)
+    optimizer = torch.optim.Adam(capsule_net.parameters(), lr=LEARNING_RATE)
 
     if TRAIN_MODEL:
         save_best_model = SaveBestModel()

@@ -39,7 +39,7 @@ class PrimaryCaps(nn.Module):
     @staticmethod
     def squash(input_tensor):
         squared_norm = (input_tensor ** 2).sum(-1, keepdim=True)
-        output_tensor = squared_norm * input_tensor / ((1. + squared_norm) * (torch.sqrt(squared_norm) + 1e-8))
+        output_tensor = squared_norm * input_tensor / ((1. + squared_norm) * (torch.sqrt(squared_norm + 1e-10)))
         return output_tensor
 
 
@@ -87,7 +87,7 @@ class DigitCaps(nn.Module):
     @staticmethod
     def squash(input_tensor):
         squared_norm = (input_tensor ** 2).sum(-1, keepdim=True)
-        output_tensor = squared_norm * input_tensor / ((1. + squared_norm) * (torch.sqrt(squared_norm) + 1e-8))
+        output_tensor = squared_norm * input_tensor / ((1. + squared_norm) * (torch.sqrt(squared_norm + 1e-10)))
         return output_tensor
 
 
