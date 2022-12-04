@@ -8,7 +8,7 @@ plt.style.use('ggplot')
 class SaveBestModel:
     """
     Class to save the best model while training. If the current epoch's
-    validation loss is less than the previous least less, then save the
+    validation loss is less than the previous least, then save the
     model state.
     """
 

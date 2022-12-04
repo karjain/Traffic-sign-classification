@@ -69,7 +69,7 @@ class DigitCaps(nn.Module):
         if USE_CUDA:
             b_ij = b_ij.cuda()
 
-        num_iterations = 1
+        num_iterations = 3
         for iteration in range(num_iterations):
             c_ij = f.softmax(b_ij, dim=1)
             c_ij = torch.cat([c_ij] * batch_size, dim=0).unsqueeze(4)
