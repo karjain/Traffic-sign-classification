@@ -1,14 +1,14 @@
 import torch
 import torch.nn as nn
 from torchvision import transforms
-from data_loader1 import Dataset
+from data_loader import Dataset
 from torch.nn import functional as F
-import shap
 import numpy as np
 import os
-import shutil
 from PIL import Image
 from lime import lime_image
+from skimage.segmentation import mark_boundaries
+from lime.wrappers.scikit_image import SegmentationAlgorithm
 import matplotlib.pyplot as plt
 
 BATCH_SIZE = 10
@@ -35,7 +35,6 @@ class CNN(torch.nn.Module):
         x = F.dropout(x, training=self.training)
         x = self.fc2(x)
         return F.log_softmax(x, dim=1)
-
 
 
 
@@ -100,22 +99,6 @@ def test(model):
         print(f"Test set accuracy = {100 * (test_acc / total)} %")
 
 
-
-#SHAP
-# batch = next(iter(mnist.test_loader))
-# images, _ = batch
-# background = images[:3].cuda()
-# test_images = images[3:10].cuda()
-# ex = shap.DeepExplainer(model, background)
-# shap_values = ex.shap_values(test_images)
-#
-#
-# shap_numpy = [np.swapaxes(np.swapaxes(s, 1, -1), 1, 2) for s in shap_values]
-# test_images = test_images.cpu()
-# test_numpy = np.swapaxes(np.swapaxes(test_images.numpy(), 1, -1), 1, 2)
-#
-# shap.image_plot(shap_numpy, -test_numpy)
-
 # explaining with lime 
 def get_image(path):
     with open(os.path.abspath(path), 'rb') as f:
@@ -151,7 +134,6 @@ def lime(img):
         # model.load_state_dict(checkpoint['model_state_dict'])
         model.eval()
 
-        # images = get_image(DATA_DIR + 'Test/03440.png')
         batch = torch.stack(tuple(preprocess_transform(i) for i in images), dim=0)
 
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -165,8 +147,7 @@ def lime(img):
     test_pred = batch_predict([pill_transf(img)])
 
     explainer = lime_image.LimeImageExplainer()
-    from lime.wrappers.scikit_image import SegmentationAlgorithm
-    # segmenter = SegmentationAlgorithm('slic', n_segments=4, compactness=100, sigma=1)
+
     segmenter = SegmentationAlgorithm('quickshift')
     explanation = explainer.explain_instance(np.array(pill_transf(img)),
                                              batch_predict,  # classification function
@@ -181,26 +162,16 @@ def lime(img):
     ax1.imshow(img)
     ax1.set_title('Image')
 
-    from skimage.segmentation import mark_boundaries
-    # temp, mask = explanation.get_image_and_mask(explanation.top_labels[0], positive_only=True, num_features=50, hide_rest=True)
-    # img_boundry1 = mark_boundaries(temp / 255.0, mask)
-    # # plt.title('1')
-    # ax1.imshow(img_boundry1)
-    # # plt.show()
-
     temp, mask = explanation.get_image_and_mask(explanation.top_labels[0], positive_only=False, num_features=50,
                                                 hide_rest=True)
     img_boundry2 = mark_boundaries(temp / 255.0, mask)
-    # plt.title('2')
     ax2.imshow(img_boundry2)
     ax2.set_title('Image with Mask')
     plt.show()
 
 
-
 train(model, optimizer)
 test(model)
 
-
-img = get_image(r'/home/ubuntu/pytorch1/Test/07200.png')
+img = get_image(r'/home/ubuntu//Final_Project/Data/Test/07200.png')
 lime(img)
