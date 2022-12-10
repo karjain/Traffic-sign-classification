@@ -17,6 +17,7 @@ import matplotlib.pyplot as plt
 from lime import lime_image
 import os, random
 from skimage.segmentation import mark_boundaries
+import utils
 
 torch.cuda.empty_cache()
 
@@ -28,6 +29,7 @@ MOMENTUM = 0.9
 NUM_CLASSES = 43
 torch.manual_seed(1)
 
+utils.download_model('.') 
 
 torch.cuda.empty_cache()
 class Config:
@@ -35,12 +37,12 @@ class Config:
 
         # CNN (cnn)
         self.cnn_in_channels = 3
-        self.cnn_out_channels = 256
+        self.cnn_out_channels = 384
         self.cnn_kernel_size = 9
 
         # Primary Capsule (pc)
         self.pc_num_capsules = 8
-        self.pc_in_channels = 256
+        self.pc_in_channels = 384
         self.pc_out_channels = 32
         self.pc_kernel_size = 9
         self.pc_num_routes = 32 * 6 * 6
