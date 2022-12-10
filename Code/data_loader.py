@@ -21,8 +21,7 @@ from torch.utils.data import DataLoader, Dataset
 from torchvision.io import read_image
 import pandas as pd
 import os
-import shutil
-from kaggle.api.kaggle_api_extended import KaggleApi
+from utils import download_data
 
 
 class GTSRB(Dataset):
@@ -52,7 +51,7 @@ class Dataset:
         code_dir = os.getcwd()
         self.img_dir = os.path.join(os.path.split(code_dir)[0], 'Data')
         if download:
-            self.download_data()
+            download_data(self.img_dir)
         train_file = os.path.join(self.img_dir, "Train.csv")
         test_file = os.path.join(self.img_dir, "Test.csv")
         self.batch_size = _batch_size
@@ -62,7 +61,7 @@ class Dataset:
             transform=transforms.Compose([
                 transforms.Resize((28, 28)),
                 transforms.ConvertImageDtype(torch.float32),
-                # transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+                transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
             ])
         )
         self.test_data = GTSRB(
@@ -71,7 +70,7 @@ class Dataset:
             transform=transforms.Compose([
                 transforms.Resize((28, 28)),
                 transforms.ConvertImageDtype(torch.float32),
-                # transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+                transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
             ])
         )
         self.train_loader = torch.utils.data.DataLoader(
@@ -80,23 +79,4 @@ class Dataset:
         self.test_loader = torch.utils.data.DataLoader(
             self.test_data, batch_size=self.batch_size, shuffle=False)
 
-    def download_data(self):
-        if not os.path.exists(self.img_dir):
-            os.mkdir(self.img_dir)
-        else:
-            for root, dirs, files in os.walk(self.img_dir):
-                for f in files:
-                    os.unlink(os.path.join(root, f))
-                for d in dirs:
-                    shutil.rmtree(os.path.join(root, d))
-        os.chdir(self.img_dir)
-        api = KaggleApi()
-        api.authenticate()
-        api.dataset_download_files(
-            'meowmeowmeowmeowmeow/gtsrb-german-traffic-sign',
-            path=self.img_dir)
-        return_code = os.system("unzip gtsrb-german-traffic-sign.zip")
-        if return_code != 0:
-            print("Could not unzip file")
-            exit(1)
-        print("Download complete")
+

@@ -8,7 +8,7 @@ from capsnet import CapsNet
 from data_loader import Dataset
 from tqdm import tqdm
 import os
-from utils import SaveBestModel
+from utils import SaveBestModel, download_model
 
 
 torch.cuda.empty_cache()
@@ -20,7 +20,8 @@ N_EPOCHS = 10
 LEARNING_RATE = 1e-3
 MOMENTUM = 0.9
 NUM_CLASSES = 43
-TRAIN_MODEL = True
+TRAIN_MODEL = False
+DOWNLOAD_IMG_DATA = True
 '''
 Config class to determine the parameters for capsule net
 '''
@@ -31,12 +32,12 @@ class Config:
 
         # CNN (cnn)
         self.cnn_in_channels = 3
-        self.cnn_out_channels = 256
+        self.cnn_out_channels = 384
         self.cnn_kernel_size = 9
 
         # Primary Capsule (pc)
         self.pc_num_capsules = 8
-        self.pc_in_channels = 256
+        self.pc_in_channels = 384
         self.pc_out_channels = 32
         self.pc_kernel_size = 9
         self.pc_num_routes = 32 * 6 * 6
@@ -115,7 +116,7 @@ if __name__ == '__main__':
     torch.manual_seed(1)
 
     config = Config()
-    mnist = Dataset(BATCH_SIZE, download=False)
+    mnist = Dataset(BATCH_SIZE, download=DOWNLOAD_IMG_DATA)
 
     capsule_net = CapsNet(config)
     capsule_net = torch.nn.DataParallel(capsule_net)
@@ -123,21 +124,18 @@ if __name__ == '__main__':
         capsule_net = capsule_net.cuda()
     capsule_net = capsule_net.module
 
-    # optimizer = torch.optim.RMSprop(capsule_net.parameters(), lr=LEARNING_RATE, momentum=MOMENTUM)
     optimizer = torch.optim.Adam(capsule_net.parameters(), lr=LEARNING_RATE)
+    model_dir = os.path.join(os.path.split(mnist.img_dir)[0], 'Model')
 
     if TRAIN_MODEL:
-        save_best_model = SaveBestModel()
+        save_best_model = SaveBestModel(model_name='capsnet-model.pt')
         for e in range(1, N_EPOCHS + 1):
             train(mnist.train_loader, e)
             val_loss = test(mnist.test_loader, e)
             save_best_model(val_loss, e, capsule_net, optimizer)
     else:
-        capsule_net.load_state_dict(torch.load(os.path.join(mnist.img_dir, 'capsnet-model.pt')))
-        test_acc = test(mnist.test_loader, 1)
+        download_model(model_dir)
 
-# batch = next(iter(mnist.test_loader))
-# images, _ = batch
-# background = images[:100].cuda()
-# test_images = images[100:105].cuda()
-# explainer = shap.DeepExplainer(capsule_net, mnist)
+    capsule_net.load_state_dict(torch.load(os.path.join(model_dir, 'capsnet-model.pt')))
+    test_acc = test(mnist.test_loader, 1)
+
