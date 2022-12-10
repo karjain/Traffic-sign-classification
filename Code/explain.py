@@ -6,19 +6,17 @@ import pandas as pd
 import os
 import shutil
 from kaggle.api.kaggle_api_extended import KaggleApi
-
 import numpy as np
 import torch
-# import torch.nn as nn
-# import torch.nn.functional as F
 from torch.autograd import Variable
-# from torchvision import datasets, transforms
 from capsnet import CapsNet
 from tqdm import tqdm
 from torchvision import models, transforms
 from PIL import Image
 import matplotlib.pyplot as plt
 from lime import lime_image
+import os, random
+from skimage.segmentation import mark_boundaries
 
 torch.cuda.empty_cache()
 
@@ -67,14 +65,19 @@ def get_image(path):
 
 def lime(img):
     def get_pil_transform():
+        '''
+        Preprocess image
+        '''
         transf = transforms.Compose([
             transforms.Resize((28, 28)),
-            # transforms.CenterCrop(224)
         ])
 
         return transf
 
     def get_preprocess_transform():
+        '''
+            Preprocess image
+        '''
         normalize = transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
         transf = transforms.Compose([
             transforms.ToTensor(),
@@ -88,12 +91,9 @@ def lime(img):
 
     def batch_predict(images):
         model = CapsNet(config)
-        # checkpoint = torch.load('saved_model.pth')
         model.load_state_dict(torch.load('capsnet-model.pt'))
-        # model.load_state_dict(checkpoint['model_state_dict'])
         model.eval()
 
-        # images = get_image(DATA_DIR + 'Test/03440.png')
         batch = torch.stack(tuple(preprocess_transform(i) for i in images), dim=0)
 
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -106,10 +106,7 @@ def lime(img):
 
     test_pred = batch_predict([pill_transf(img)])
 
-    # print(f'argamx = {np.argmax(test_pred.data.cpu().numpy(), 1) }')
-
-
-
+    # Lime image Explaaner
     explainer = lime_image.LimeImageExplainer()
     from lime.wrappers.scikit_image import SegmentationAlgorithm
     # segmenter = SegmentationAlgorithm('slic', n_segments=4, compactness=100, sigma=1)
@@ -121,53 +118,38 @@ def lime(img):
                                              segmentation_fn=segmenter,
                                              num_samples=1000,
                                              )  # number of images that will be sent to classification function
-    # plt.imshow(explanation.segments)
-    # plt.axis('off')
-    # plt.show()
 
-    # plt.imshow(img)
-    # plt.title('orginal image')
-    # plt.show()
 
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(8, 4))
+    fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(8, 4))
 
     ax1.imshow(img)
     ax1.set_title('Image')
-
-    from skimage.segmentation import mark_boundaries
-    # temp, mask = explanation.get_image_and_mask(explanation.top_labels[0], positive_only=True, num_features=50, hide_rest=True)
-    # img_boundry1 = mark_boundaries(temp / 255.0, mask)
-    # # plt.title('1')
-    # ax1.imshow(img_boundry1)
-    # # plt.show()
-
+    
+    ax2.imshow(explanation.segments)
+    ax2.set_title('Segments')
+    
     temp, mask = explanation.get_image_and_mask(explanation.top_labels[0], positive_only=False, num_features=50, hide_rest=True)
     img_boundry2 = mark_boundaries(temp / 255.0, mask)
-    # plt.title('2')
-    ax2.imshow(img_boundry2)
-    ax2.set_title('Image with Mask')
+    ax3.imshow(img_boundry2)
+    ax3.set_title('Image with Mask')
     plt.show()
 
 
 if __name__ == '__main__':
     torch.manual_seed(1)
-
     config = Config()
 
     code_dir = os.getcwd()
-    os.chdir("..")  # Change to the parent directory
-    os.chdir("..")  # Change to the parent directory
-    DATA_DIR = os.getcwd() + os.path.sep + 'Data' + os.path.sep
-    os.chdir(code_dir)
+    img_dir = os.path.join(os.path.split(code_dir)[0], 'Data')
 
-    img = get_image(DATA_DIR + 'Test/07200.png')
-    # temp = Image.open(DATA_DIR + 'Test/07086.png').convert('RGB')
-    # plt.imshow(temp)
-    # plt.show()
-    # originalimg = img.copy()
-    # plt.imshow(img)
-    # plt.show()
-    lime(img)
+
+    for i in range(6):
+        img_path = random.choice(os.listdir(os.path.join(img_dir,'Test')))
+        print(img_path)
+        img = get_image(os.path.join(img_dir,'Test', img_path))
+        lime(img)
+
+
 
 
 
