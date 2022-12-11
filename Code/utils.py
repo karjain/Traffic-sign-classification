@@ -67,11 +67,17 @@ def download_model(model_dir):
     cur_dir = os.getcwd()
     os.chdir(model_dir)
     capsnet_model_id = "1LNMRafVrmCEOOMjbKJbrOvHLzgy1rCxu"
+    cnn_model_id = "1nAXgfg-urbgPCDY-HOJdBIFT0cMynl-F"
     capsnet_model_name = 'capsnet-model.pt'
-    output_name = gdown.download(id=capsnet_model_id, quiet=False)
-    if capsnet_model_name != output_name:
+    cnn_model_name = 'cnn-model.pt'
+    capsnet_output_name = gdown.download(id=capsnet_model_id, quiet=False)
+    if capsnet_model_name != capsnet_output_name:
         print("Error in downloading capsnet model")
         exit(2)
-    print("Capsnet model download complete")
+    cnn_output_name = gdown.download(id=cnn_model_id, quiet=False)
+    if cnn_model_name != cnn_output_name:
+        print("Error in downloading CNN model")
+        exit(3)
+    print("Capsnet and CNN model download complete")
     os.chdir(cur_dir)
 
