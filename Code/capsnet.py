@@ -18,7 +18,7 @@ class ConvLayer(nn.Module):
         )
 
     def forward(self, x):
-        return f.relu(self.conv(x))
+        return f.relu(self.conv(x))  # NEWLY ADDED (hardswish)
 
 
 class PrimaryCaps(nn.Module):
@@ -110,6 +110,7 @@ class Decoder(nn.Module):
     def forward(self, x):
         classes = torch.sqrt((x ** 2).sum(2))
         classes = f.softmax(classes, dim=0)
+        # classes = f.softmax(classes, dim=0)  # NEWLY ADDED
 
         _, max_length_indices = classes.max(dim=1)
         masked = Variable(torch.sparse.torch.eye(self.num_classes))

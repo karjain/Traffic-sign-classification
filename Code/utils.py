@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import shutil
 from kaggle.api.kaggle_api_extended import KaggleApi
 import gdown
+import pandas as pd
 
 plt.style.use('ggplot')
 
@@ -58,7 +59,7 @@ def download_data(img_dir):
     if return_code != 0:
         print("Could not unzip file")
         exit(1)
-    print("Download complete")
+    print("Download complete\n")
 
 
 def download_model(model_dir):
@@ -81,3 +82,30 @@ def download_model(model_dir):
     print("Capsnet and CNN model download complete")
     os.chdir(cur_dir)
 
+
+def plot_metrics(data_dir, metrics_file_name):
+    capsnet_metrics_file = os.path.join(data_dir, metrics_file_name)
+    if not os.path.exists(capsnet_metrics_file):
+        print("Metrics file does not exist")
+    else:
+        capsnet_metrics_df = pd.read_csv(capsnet_metrics_file)
+        plt.figure(figsize=(10, 8))
+        plt.plot(capsnet_metrics_df['epoch'], capsnet_metrics_df['train_loss'], label='Train Loss')
+        plt.plot(capsnet_metrics_df['epoch'], capsnet_metrics_df['val_loss'], label='Val Loss')
+        plt.xlabel("Epochs")
+        plt.ylabel("Loss")
+        plt.title(f"Train vs Validation loss")
+        plt.legend()
+        plt.tight_layout()
+        plt.savefig(os.path.join(data_dir, 'loss.png'), dpi=300)
+        plt.figure(figsize=(10, 8))
+        plt.plot(capsnet_metrics_df['epoch'], capsnet_metrics_df['train_accuracy'], label='Train Accuracy')
+        plt.plot(capsnet_metrics_df['epoch'], capsnet_metrics_df['val_accuracy'], label='Val Accuracy')
+        plt.plot(capsnet_metrics_df['epoch'], capsnet_metrics_df['train_f1_macro_score'], label='Train F1-Macro')
+        plt.plot(capsnet_metrics_df['epoch'], capsnet_metrics_df['val_f1_macro_score'], label='Val F1-Macro')
+        plt.xlabel("Epochs")
+        plt.ylabel("Loss")
+        plt.title(f"Train vs Validation Accuracy, F1-micro, and F-1 macro")
+        plt.legend()
+        plt.tight_layout()
+        plt.savefig(os.path.join(data_dir, 'acc-f1.png'), dpi=300)
