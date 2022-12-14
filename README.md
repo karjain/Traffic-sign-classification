@@ -1,4 +1,4 @@
-#Capsule Neural Networks
+# Capsule Neural Networks
 <h5>This repository contains the implementation of the Capusle Neural Network (https://arxiv.org/abs/1710.09829) </h5>
 
 
