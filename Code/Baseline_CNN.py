@@ -3,7 +3,7 @@ import torch.nn as nn
 from data_loader import Dataset
 from torch.nn import functional as f
 from tqdm import tqdm
-from utils import SaveBestModel
+from utils import SaveBestModel, download_data
 from sklearn.metrics import f1_score, accuracy_score
 import pandas as pd
 import os
@@ -125,6 +125,11 @@ if __name__ == "__main__":
     weight_decay = 0.01
     criterion = torch.nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
+
+    code_dir = os.getcwd()
+    data_dir = os.path.join(os.path.split(code_dir)[0], 'Data')
+    if not os.path.exists(data_dir):
+        download_data(data_dir)
 
     BATCH_SIZE = 64
     mnist = Dataset(BATCH_SIZE)
