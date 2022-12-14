@@ -126,10 +126,6 @@ if __name__ == "__main__":
     else:
         DOWNLOAD_IMG_DATA = False
 
-    code_dir = os.getcwd()
-    data_dir = os.path.join(os.path.split(code_dir)[0], 'Data')
-    if DOWNLOAD_IMG_DATA:
-        download_data(data_dir)
     # Selecting the appropriate training device
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     model = CNN().to(device)
@@ -145,7 +141,7 @@ if __name__ == "__main__":
     data_dir = os.path.join(os.path.split(code_dir)[0], 'Data')
 
     BATCH_SIZE = 64
-    mnist = Dataset(BATCH_SIZE)
+    mnist = Dataset(BATCH_SIZE, download=DOWNLOAD_IMG_DATA)
     train_loss_list = list()
     test_loss_list = list()
     epoch_metrics = list()

@@ -11,28 +11,7 @@ from tqdm import tqdm
 import argparse
 import os
 import pandas as pd
-from utils import SaveBestModel, download_model, plot_metrics
-
-parser = argparse.ArgumentParser()
-parser.add_argument('-Train',  action='store_true')
-parser.add_argument('-ImageDownload',  action='store_true')
-args = parser.parse_args()
-
-option = args.Train
-print(f'option={option}')
-if args.Train:
-    TRAIN_MODEL = True
-    print('Training')
-else:
-    print('only predict')
-    TRAIN_MODEL = False
-
-if args.ImageDownload:
-    DOWNLOAD_IMG_DATA = True
-else:
-    DOWNLOAD_IMG_DATA = False
-
-print(f'TRAIN_MODEL={TRAIN_MODEL}')
+from utils import SaveBestModel, download_model, download_data, plot_metrics
 
 torch.cuda.empty_cache()
 torch.autograd.set_detect_anomaly(True)
@@ -122,7 +101,6 @@ def train(train_loader, epoch):
 def test(test_loader, epoch, suffix):
     capsule_net.eval()
     test_loss = 0
-    correct = 0
     all_predictions = list()
     all_labels = list()
     metric_dict = dict()
@@ -156,6 +134,29 @@ def test(test_loader, epoch, suffix):
 
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-Train', action='store_true')
+    parser.add_argument('-ImageDownload', action='store_true')
+    args = parser.parse_args()
+
+    option = args.Train
+    print(f'option={option}')
+    if args.Train:
+        TRAIN_MODEL = True
+        print('Training')
+    else:
+        print('only predict')
+        TRAIN_MODEL = False
+
+    if args.ImageDownload:
+        DOWNLOAD_IMG_DATA = True
+    else:
+        DOWNLOAD_IMG_DATA = False
+
+    print(f'TRAIN_MODEL={TRAIN_MODEL}')
+    code_dir = os.getcwd()
+    data_dir = os.path.join(os.path.split(code_dir)[0], 'Data')
+
     torch.manual_seed(1)
 
     config = Config()
@@ -181,8 +182,8 @@ if __name__ == '__main__':
             epoch_metrics.append({"epoch": e, **train_metrics, **val_metrics})
         metric_df = pd.DataFrame(epoch_metrics)
         # Creating metric outputs
-        metric_df.to_csv(os.path.join(mnist.img_dir, 'Metrics.csv'), index=False)
-        plot_metrics(mnist.img_dir, 'Metrics.csv')
+        metric_df.to_csv(os.path.join(mnist.img_dir, 'Capsnet-Metrics.csv'), index=False)
+        plot_metrics(mnist.img_dir, 'Capsnet-Metrics.csv')
 
     else:
         download_model(model_dir)
