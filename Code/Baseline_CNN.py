@@ -6,6 +6,7 @@ from tqdm import tqdm
 from utils import SaveBestModel, download_data
 from sklearn.metrics import f1_score, accuracy_score
 import pandas as pd
+import argparse
 import os
 
 
@@ -115,6 +116,20 @@ def test(epoch):
 
 
 if __name__ == "__main__":
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-ImageDownload', action='store_true')
+    args = parser.parse_args()
+
+    if args.ImageDownload:
+        DOWNLOAD_IMG_DATA = True
+    else:
+        DOWNLOAD_IMG_DATA = False
+
+    code_dir = os.getcwd()
+    data_dir = os.path.join(os.path.split(code_dir)[0], 'Data')
+    if DOWNLOAD_IMG_DATA:
+        download_data(data_dir)
     # Selecting the appropriate training device
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     model = CNN().to(device)
@@ -128,8 +143,6 @@ if __name__ == "__main__":
 
     code_dir = os.getcwd()
     data_dir = os.path.join(os.path.split(code_dir)[0], 'Data')
-    if not os.path.exists(data_dir):
-        download_data(data_dir)
 
     BATCH_SIZE = 64
     mnist = Dataset(BATCH_SIZE)
