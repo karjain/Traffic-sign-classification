@@ -16,7 +16,7 @@
   #  -ImageDownload arg to get the data files
   #  -Train arg to enter train Phase
   
-  python3 -u Baseline_CNN.py
+  python3 -u Baseline_CNN.py  -ImageDownload 
   #  -ImageDownload arg to get the data files
 
   python3 -u explain.py
