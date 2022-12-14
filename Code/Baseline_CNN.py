@@ -4,10 +4,9 @@ from data_loader import Dataset
 from torch.nn import functional as f
 from tqdm import tqdm
 from utils import SaveBestModel
-
-
-BATCH_SIZE = 64
-mnist = Dataset(BATCH_SIZE)
+from sklearn.metrics import f1_score, accuracy_score
+import pandas as pd
+import os
 
 
 class CNN(torch.nn.Module):
@@ -32,23 +31,14 @@ class CNN(torch.nn.Module):
         return f.log_softmax(x, dim=1)
 
 
-# Selecting the appropriate training device
-device = 'cuda' if torch.cuda.is_available() else 'cpu'
-model = CNN().to(device)
-
-# Defining the model hyper parameters
-num_epochs = 10
-learning_rate = 0.001
-weight_decay = 0.01
-criterion = torch.nn.CrossEntropyLoss()
-optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
-
-
 # Training process begins
 def train(epoch):
     train_loss = 0
     total = 0
     train_acc = 0
+    all_predictions = list()
+    all_labels = list()
+    metric_dict = dict()
 
     # Iterating over the training dataset in batches
     model.train()
@@ -72,6 +62,8 @@ def train(epoch):
         total += labels.size(0)
         # Comparing predicted and true labels
         train_acc += torch.sum(torch.Tensor(y_pred == labels)).item()
+        all_predictions.extend(list(y_pred.cpu().numpy()))
+        all_labels.extend(list(labels.cpu().numpy()))
         pbar.set_postfix({
             "train_loss": train_loss / total,
             "train_acc": train_acc / total
@@ -79,11 +71,18 @@ def train(epoch):
 
     # Printing loss for each epoch
     train_loss_list.append(train_loss / len(mnist.train_loader))
+    metric_dict['train_loss'] = train_loss / len(mnist.train_loader)
+    metric_dict['train_accuracy'] = accuracy_score(all_labels, all_predictions)
+    metric_dict['train_f1_score_macro'] = f1_score(all_labels, all_predictions, average='macro')
+    return metric_dict
 
 
 def test(epoch):
     test_loss = 0
     test_acc = 0
+    all_predictions = list()
+    all_labels = list()
+    metric_dict = dict()
     model.eval()
     total = 0
     with torch.no_grad():
@@ -102,18 +101,42 @@ def test(epoch):
             total += y_true.size(0)
             # Comparing predicted and true labels
             test_acc += torch.sum(torch.Tensor(y_pred == y_true)).item()
+            all_predictions.extend(list(y_pred.cpu().numpy()))
+            all_labels.extend(list(labels.cpu().numpy()))
             pbar.set_postfix({
                 "test_loss": test_loss / total,
                 "test_acc": test_acc / total
             })
     test_loss_list.append(test_loss / len(mnist.test_loader))
+    metric_dict[f'val_loss'] = test_loss / len(mnist.test_loader)
+    metric_dict[f'val_accuracy'] = accuracy_score(all_labels, all_predictions)
+    metric_dict[f'val_f1_macro_score'] = f1_score(all_labels, all_predictions, average='macro')
+    return metric_dict
 
 
 if __name__ == "__main__":
-    train_loss_list = []
-    test_loss_list = []
+    # Selecting the appropriate training device
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    model = CNN().to(device)
+
+    # Defining the model hyper parameters
+    num_epochs = 10
+    learning_rate = 0.001
+    weight_decay = 0.01
+    criterion = torch.nn.CrossEntropyLoss()
+    optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
+
+    BATCH_SIZE = 64
+    mnist = Dataset(BATCH_SIZE)
+    train_loss_list = list()
+    test_loss_list = list()
+    epoch_metrics = list()
     save_best_model = SaveBestModel(model_name='cnn-model.pt')
     for e in range(num_epochs):
-        train(e)
-        test(e)
+        train_metrics = train(e)
+        val_metrics = test(e)
         save_best_model(test_loss_list[-1], e + 1, model, optimizer)
+        epoch_metrics.append({"epoch": e+1, **train_metrics, **val_metrics})
+    metric_df = pd.DataFrame(epoch_metrics)
+    # Creating metric outputs
+    metric_df.to_csv(os.path.join(mnist.img_dir, 'CNN-Metrics.csv'), index=False)
